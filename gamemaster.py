@@ -57,8 +57,10 @@ class Gamemaster:
 
 if __name__ == "__main__":
     strategy1 = StrategyAlwaysCooperate()
-    strategy2 = StrategyGamblersTitForThat()
+    strategy2 = StrategyTitForThat()
+
+    print(strategy2.lookup_table_from_strategy(2))
     # strategy1 = StrategyTitForThat()
     # strategy2 = StrategyRandom()
-    game = Gamemaster(strategy1, strategy2, 10)
+    game = Gamemaster(strategy1, strategy2, 100)
     game.play_round()

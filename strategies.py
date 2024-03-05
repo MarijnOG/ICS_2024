@@ -44,6 +44,25 @@ class BaseStrategy:
 
         return lookup_table
 
+    def _int_to_binary_str(self, number, padding_length):
+        """Converts an integer to binary in list format with length padding_length"""
+        binary_string = bin(number)[2:]  # Convert to binary and remove the '0b' prefix
+        return "0"*(padding_length - len(binary_string)) + binary_string
+
+    def lookup_table_from_strategy(self, lookback: int):
+        lookup_table = {}
+
+        for own_decision in range(2**lookback):
+            for opponent_decision in range(2**lookback):
+                own_str_bin = self._int_to_binary_str(own_decision, lookback)
+                opp_str_bin = self._int_to_binary_str(opponent_decision, lookback)
+
+                new_decision = self.decide([own_str_bin], [opp_str_bin])
+                new_decision = new_decision if type(new_decision) == int else new_decision[-1]
+    
+                lookup_table[own_str_bin + opp_str_bin] = new_decision
+
+        return lookup_table
 
 class StrategyAlwaysDefect(BaseStrategy):
 
@@ -139,6 +158,20 @@ class StrategyGamblersTitForThat(BaseStrategy):
         """
         if opponent_previous_actions:
             return opponent_previous_actions[-1] if random() > self.chance else abs(opponent_previous_actions[-1] - 1)
-        
+
         return 1
 
+class StrategyInvertedTat(BaseStrategy):
+
+    def __init__(self, chance_to_invert: float = 0.2):
+        self.chance = chance_to_invert
+
+    def decide(self, self_previous_actions, opponent_previous_actions):
+        """
+        Tit for tat with added chance element. It makes the invverse decision 20%
+        of the time by default.
+        """
+        if opponent_previous_actions:
+            return abs(opponent_previous_actions[-1] - 1)
+
+        return 1
