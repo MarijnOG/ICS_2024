@@ -63,5 +63,5 @@ if __name__ == "__main__":
     print(strategy2.strategy_code)
 
 
-    game = Gamemaster(strategy1, strategy2, 100000)
+    game = Gamemaster(strategy1, strategy2, 100)
     game.play_round()
