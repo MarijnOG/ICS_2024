@@ -1,5 +1,5 @@
 from enum import Enum
-from random import random, randint
+from random import random, randint, choice
 
 # Lists all strategies
 
@@ -46,23 +46,51 @@ class BaseStrategy:
 
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
-        binary_string = bin(number)[2:]  # Convert to binary and remove the '0b' prefix
+        binary_string = bin(
+            number)[2:]  # Convert to binary and remove the '0b' prefix
         return "0"*(padding_length - len(binary_string)) + binary_string
 
     def lookup_table_from_strategy(self, lookback: int):
+        """Takes a compatible, possibly written out strategy and converts it to a table.
+        This is implemented to reduce 'ugly' strategies in this file. Note that using this
+        method with an incompatible strategy, such as one that uses chance, will produce
+        undesirable and perhaps undeterministic behaviour."""
         lookup_table = {}
 
         for own_decision in range(2**lookback):
             for opponent_decision in range(2**lookback):
                 own_str_bin = self._int_to_binary_str(own_decision, lookback)
-                opp_str_bin = self._int_to_binary_str(opponent_decision, lookback)
+                opp_str_bin = self._int_to_binary_str(
+                    opponent_decision, lookback)
 
                 new_decision = self.decide([own_str_bin], [opp_str_bin])
-                new_decision = new_decision if type(new_decision) == int else new_decision[-1]
-    
+                new_decision = new_decision if type(
+                    new_decision) == int else new_decision[-1]
+
                 lookup_table[own_str_bin + opp_str_bin] = new_decision
 
         return lookup_table
+
+
+class StrategyGenerated(BaseStrategy):
+
+    def __init__(self, lookback):
+        self.strategy_code = ''.join(choice(['0', '1']) for _ in range(2**(2*lookback)))
+        self.lookback = lookback
+
+    def decide(self, self_previous_actions, opponent_previous_actions):
+        """Uses the randomly generated table to decide the next step.
+
+        :param self_previous_actions: _description_
+        :param opponent_previous_actions: _description_
+        :return: _description_
+        """
+        if len(self_previous_actions) < self.lookback: return 1
+
+        index = self_previous_actions[-self.lookback:] + opponent_previous_actions[-self.lookback:]
+        index = int(''.join(map(str, index)), 2)
+
+        return int(self.strategy_code[index])
 
 class StrategyAlwaysDefect(BaseStrategy):
 
@@ -160,6 +188,7 @@ class StrategyGamblersTitForThat(BaseStrategy):
             return opponent_previous_actions[-1] if random() > self.chance else abs(opponent_previous_actions[-1] - 1)
 
         return 1
+
 
 class StrategyInvertedTat(BaseStrategy):
 

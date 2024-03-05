@@ -19,7 +19,7 @@ class Gamemaster:
 
         self.strategy1 = strategy1
         self.strategy2 = strategy2
-        self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 0}
+        self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
 
         self.amount_runs = n_runs + random_int
 
@@ -45,8 +45,8 @@ class Gamemaster:
             player1_reward += self.payoff_table[result_key]
             player2_reward += self.payoff_table[result_key[::-1]]
 
-        print(self.player1_results, "\n")
-        print(self.player2_results, "\n")
+        # print(self.player1_results, "\n")
+        # print(self.player2_results, "\n")
 
         print(player1_reward, player2_reward)
 
@@ -56,11 +56,12 @@ class Gamemaster:
 
 
 if __name__ == "__main__":
-    strategy1 = StrategyAlwaysCooperate()
-    strategy2 = StrategyTitForThat()
+    strategy1 = StrategyGenerated(2)
+    strategy2 = StrategyGenerated(2)
 
-    print(strategy2.lookup_table_from_strategy(2))
-    # strategy1 = StrategyTitForThat()
-    # strategy2 = StrategyRandom()
-    game = Gamemaster(strategy1, strategy2, 100)
+    print(strategy1.strategy_code)
+    print(strategy2.strategy_code)
+
+
+    game = Gamemaster(strategy1, strategy2, 100000)
     game.play_round()
