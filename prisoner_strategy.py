@@ -14,7 +14,7 @@ class PrisonersDilemmaStrategy:
         """
         Takes the decision_table from the input and converts it to the proper syntax.
         """
-
+        
 
 
     def decide(self, opponent_previous_actions):
@@ -69,5 +69,5 @@ print(tit_for_that_dic)
 
 
 # For a full table:
-# For lookback 1, we require 2^(2*1) sets of 2^1 cells + 2^2 result cells. For 2 lookback,
+# For lookback 1, we require 2^(2*1) sets of 2^1 cells + 2^2 result cells. For 2 lookback, 
 # we require 2^(2*2) sets of 2^2 cells + 2^4 result cells. For n lookback, we require 2^(2n) sets of 2^n cells + 2^(2n) cells.
