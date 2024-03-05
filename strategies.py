@@ -32,22 +32,22 @@ class BaseStrategy:
         """
         pass
 
-    def split_last_string(self, string: str):
-        return string[:-1], string[-1]
+    # def split_last_string(self, string: str):
+    #     return string[:-1], string[-1]
 
-    def generate_lookup_table(self, strategy_code, lookback):
-        lookup_table = {}
-        table_size = 2 ** (lookback * 2)
-        for i in range(table_size):
-            key, result = self.split_last_string(strategy_code[i::table_size])
-            lookup_table[key] = result
+    # def generate_lookup_table(self, strategy_code, lookback):
+    #     lookup_table = {}
+    #     table_size = 2 ** (lookback * 2)
+    #     for i in range(table_size):
+    #         key, result = self.split_last_string(strategy_code[i::table_size])
+    #         lookup_table[key] = result
 
-        return lookup_table
+    #     return lookup_table
 
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
-        binary_string = bin(
-            number)[2:]  # Convert to binary and remove the '0b' prefix
+        binary_string = bin(number)[2:]  # Convert to binary and remove the '0b' prefix
+
         return "0"*(padding_length - len(binary_string)) + binary_string
 
     def lookup_table_from_strategy(self, lookback: int):
@@ -55,21 +55,20 @@ class BaseStrategy:
         This is implemented to reduce 'ugly' strategies in this file. Note that using this
         method with an incompatible strategy, such as one that uses chance, will produce
         undesirable and perhaps undeterministic behaviour."""
-        lookup_table = {}
+        strategy_code = ""
 
         for own_decision in range(2**lookback):
             for opponent_decision in range(2**lookback):
                 own_str_bin = self._int_to_binary_str(own_decision, lookback)
-                opp_str_bin = self._int_to_binary_str(
-                    opponent_decision, lookback)
+                opp_str_bin = self._int_to_binary_str(opponent_decision, lookback)
 
                 new_decision = self.decide([own_str_bin], [opp_str_bin])
                 new_decision = new_decision if type(
                     new_decision) == int else new_decision[-1]
 
-                lookup_table[own_str_bin + opp_str_bin] = new_decision
+                strategy_code += str(new_decision)
 
-        return lookup_table
+        return strategy_code
 
 
 class StrategyGenerated(BaseStrategy):
@@ -168,6 +167,7 @@ class StrategyAverage(BaseStrategy):
         Starts out cooperating by default, but can be set as arg.
         """
         self.decision_count += 1
+
         if opponent_previous_actions[-1]:
             self.decision_sum += opponent_previous_actions[-1]
 
