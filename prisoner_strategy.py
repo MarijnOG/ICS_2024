@@ -17,7 +17,7 @@ class PrisonersDilemmaStrategy:
         
 
 
-    def decide(self, opponent_previous_actions):
+    def decide(self, self_previous_actions, opponent_previous_actions):
         """
         Make a decision based previous actions of both players.
 
