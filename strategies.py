@@ -168,6 +168,8 @@ class StrategyAverage(BaseStrategy):
         Starts out cooperating by default, but can be set as arg.
         """
         self.decision_count += 1
+        if not opponent_previous_actions:
+            return 1
         if opponent_previous_actions[-1]:
             self.decision_sum += opponent_previous_actions[-1]
 
