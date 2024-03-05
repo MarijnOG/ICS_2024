@@ -19,11 +19,14 @@ class Gamemaster:
 
         self.strategy1 = strategy1
         self.strategy2 = strategy2
-        self.payoff_table = [(3, 3), (0, 5), (5, 0), (1, 1)]
+        self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 0}
 
         self.amount_runs = n_runs + random_int
 
     def play_round(self):
+
+        player1_reward = 0
+        player2_reward = 0
 
         for _ in range(self.amount_runs):
             self.player1_results.append(
@@ -37,9 +40,15 @@ class Gamemaster:
                 )
             )
 
-        print(self.player1_results)
-        print()
-        print(self.player2_results)
+            # Calculate rewards
+            result_key = (self.player1_results[-1], self.player2_results[-1])
+            player1_reward += self.payoff_table[result_key]
+            player2_reward += self.payoff_table[result_key[::-1]]
+
+        print(self.player1_results, "\n")
+        print(self.player2_results, "\n")
+
+        print(player1_reward, player2_reward)
 
     def reset(self):
         self.player1_results = []
@@ -47,9 +56,9 @@ class Gamemaster:
 
 
 if __name__ == "__main__":
-    # strategy1 = StrategyAlwaysCooperate()
-    # strategy2 = StrategyAlwaysDefect()
-    strategy1 = StrategyTitForThat()
-    strategy2 = StrategyRandom()
+    strategy1 = StrategyAlwaysCooperate()
+    strategy2 = StrategyGamblersTitForThat()
+    # strategy1 = StrategyTitForThat()
+    # strategy2 = StrategyRandom()
     game = Gamemaster(strategy1, strategy2, 10)
     game.play_round()

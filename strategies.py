@@ -1,4 +1,5 @@
 from enum import Enum
+from random import random, randint
 
 # Lists all strategies
 
@@ -106,6 +107,38 @@ class StrategyGrudge(BaseStrategy):
 class StrategyRandom(BaseStrategy):
 
     def decide(self, self_previous_actions, opponent_previous_actions):
-        from random import randint
-
         return randint(0, 1)
+
+
+class StrategyAverage(BaseStrategy):
+
+    def __init__(self, decision_sum: float = 0.51):
+        self.decision_count: int = 0
+        self.decision_sum = decision_sum
+
+    def decide(self, self_previous_actions, opponent_previous_actions):
+        """Cooperate or defect based on the average decision by opponent.
+        Starts out cooperating by default, but can be set as arg.
+        """
+        self.decision_count += 1
+        if opponent_previous_actions[-1]:
+            self.decision_sum += opponent_previous_actions[-1]
+
+        return round(self.decision_sum/self.decision_count)
+
+
+class StrategyGamblersTitForThat(BaseStrategy):
+
+    def __init__(self, chance_to_invert: float = 0.2):
+        self.chance = chance_to_invert
+
+    def decide(self, self_previous_actions, opponent_previous_actions):
+        """
+        Tit for tat with added chance element. It makes the invverse decision 20%
+        of the time by default.
+        """
+        if opponent_previous_actions:
+            return opponent_previous_actions[-1] if random() > self.chance else abs(opponent_previous_actions[-1] - 1)
+        
+        return 1
+
