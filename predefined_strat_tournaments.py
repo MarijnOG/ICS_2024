@@ -58,7 +58,7 @@ def experiment_added_coop():
     for i in range(TOTAL_STEPS):
         model.step()
 
-    return model.tournament_results, keys_list + ["HighlyCoop1", "HighlyCoop1", "HighlyCoop1"]
+    return model.tournament_results, keys_list + ["HighlyCoop1", "HighlyCoop2", "HighlyCoop3"]
 
 def experiment_added_defect():
 
