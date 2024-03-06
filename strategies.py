@@ -34,16 +34,13 @@ class BaseStrategy:
         """
         pass
 
-    def split_last_string(self, string: str):
-        return string[:-1], string[-1]
-
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
         binary_string = bin(
             number)[2:]  # Convert to binary and remove the '0b' prefix
         return "0"*(padding_length - len(binary_string)) + binary_string
 
-    def strategy_code_table_from_strategy(self, lookback: int):
+    def strategy_code_from_strategy(self, lookback: int):
         """Takes a compatible, possibly written out strategy and converts it to a strategy code.
         This is implemented to reduce 'ugly' strategies in this file, as well as making it possible
         to have manually defined strategies as mutable objects. Note that using this
@@ -66,6 +63,7 @@ class BaseStrategy:
 
         self.strategy_code = strategy_code
         return strategy_code
+
 
 class CodeBasedStrategy(BaseStrategy):
     def decide(self, self_previous_actions, opponent_previous_actions):
@@ -115,6 +113,7 @@ class CodeBasedStrategy(BaseStrategy):
 
         self.strategy_code = "".join(list_self)
         other_strategy.strategy_code = "".join(list_other)
+
 
 class StrategyGenerated(CodeBasedStrategy):
     """Generates a strategy code for itself"""
@@ -178,8 +177,6 @@ class StrategyGrudge(BaseStrategy):
         """Defect if opponent defected once, else cooperate."""
         if self.grudge:
             return 0
-        if not opponent_previous_actions:
-            return 1
         if opponent_previous_actions[-1] == 0:
             self.grudge = True
             return 0
@@ -243,13 +240,14 @@ class StrategyInvertedTat(BaseStrategy):
 
         return 1
 
+
 class StrategySigmaTFT(BaseStrategy):
 
-    def __init__(self, chance_to_invert: float = 0.2):
+    def __init__(self):
         # -1 for defect, +1 for cooperate
         self.defect_coop_count = 0
 
-    def sigmoid(z):
+    def sigmoid(self, z):
         return 1/(1 + exp(-z))
 
     def decide(self, self_previous_actions, opponent_previous_actions):
@@ -267,6 +265,8 @@ class StrategySigmaTFT(BaseStrategy):
 
 # Note that this strategy is in binary string format. For the written out version,
 # see codeable_strategies.py
+
+
 class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
     """Defects after 2 consecutive defects by the opponent"""
 
@@ -274,10 +274,52 @@ class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
         self.strategy_code = "0111011101110111"
         self.lookback = 2
 
+
 class StrategyFunnyLooking(CodeBasedStrategy):
-    """Defects after 2 consecutive defects by the opponent"""
+    """Interesting looking code. Added to introduce a bit more """
 
     def __init__(self):
         self.strategy_code = "1110001110001110"
         self.lookback = 2
 
+class StrategyHighlyCooperative_1(CodeBasedStrategy):
+    """Cooperates except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "1111011111111110"
+        self.lookback = 2
+
+class StrategyHighlyCooperative_2(CodeBasedStrategy):
+    """Cooperates except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "0111101110111111"
+        self.lookback = 2
+
+class StrategyHighlyCooperative_3(CodeBasedStrategy):
+    """Cooperates except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "1011111111011111"
+        self.lookback = 2
+
+class StrategyHighlyDefective_1(CodeBasedStrategy):
+    """Defects except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "0001000000100000"
+        self.lookback = 2
+
+class StrategyHighlyDefective_2(CodeBasedStrategy):
+    """Defects except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "1001000000000010"
+        self.lookback = 2
+
+class StrategyHighlyDefective_3(CodeBasedStrategy):
+    """Defects except for very specific sequences"""
+
+    def __init__(self):
+        self.strategy_code = "0000000100000100"
+        self.lookback = 2
