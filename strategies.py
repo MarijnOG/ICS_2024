@@ -44,36 +44,6 @@ class BaseStrategy:
             lookup_table[key] = result
 
         return lookup_table
-    
-    # example strategy code: "1100"
-    def mutate(self, chance):
-        if not self.strategy_code:
-            raise AttributeError("Instance must have stratey_code attribute.")
-
-        for i in range(len(self.strategy_code)):
-            if random() <= chance:
-                bit = self.strategy_code[i]
-                flipped_bit = '0' if bit == '1' else '1'
-                self.strategy_code = (
-                    self.strategy_code[:i] + flipped_bit + self.strategy_code[i + 1:]
-                )
-
-    def crossover(self, other_strategy, chance):
-        if not isinstance(other_strategy, BaseStrategy):
-            raise ValueError("Input must be an instance of BaseStrategy or its subclass.")
-        
-        if not self.strategy_code or not other_strategy.strategy_code:
-            raise AttributeError("Input and class instance must have stratey_code attribute.")
-        
-        list_self = list(self.strategy_code)
-        list_other = list(other_strategy.strategy_code)
-
-        for i in len(list_self):
-            if random() <= chance:
-                list_self[i], list_other[i] = list_other[i], list_self[i]
-
-        self.strategy_code = str(list_self)
-        other_strategy.strategy_code = str(list_other)
 
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
@@ -81,12 +51,12 @@ class BaseStrategy:
             number)[2:]  # Convert to binary and remove the '0b' prefix
         return "0"*(padding_length - len(binary_string)) + binary_string
 
-    def lookup_table_from_strategy(self, lookback: int):
-        """Takes a compatible, possibly written out strategy and converts it to a table.
+    def strategy_code_table_from_strategy(self, lookback: int):
+        """Takes a compatible, possibly written out strategy and converts it to a strategy code.
         This is implemented to reduce 'ugly' strategies in this file. Note that using this
         method with an incompatible strategy, such as one that uses chance, will produce
         undesirable and perhaps undeterministic behaviour."""
-        lookup_table = {}
+        strategy_code = ""
 
         for own_decision in range(2**lookback):
             for opponent_decision in range(2**lookback):
@@ -94,19 +64,23 @@ class BaseStrategy:
                 opp_str_bin = self._int_to_binary_str(
                     opponent_decision, lookback)
 
-                new_decision = self.decide([own_str_bin], [opp_str_bin])
+                print([int(c) for c in own_str_bin], [int(c) for c in opp_str_bin])
+
+                new_decision = self.decide([int(c) for c in own_str_bin], [int(c) for c in opp_str_bin])
                 new_decision = new_decision if type(
                     new_decision) == int else new_decision[-1]
 
-                lookup_table[own_str_bin + opp_str_bin] = new_decision
+                strategy_code += str(new_decision)
 
-        return lookup_table
+        self.strategy_code = strategy_code
+        return strategy_code
 
 
 class StrategyGenerated(BaseStrategy):
 
     def __init__(self, lookback):
-        self.strategy_code = ''.join(choice(['0', '1']) for _ in range(2**(2*lookback)))
+        self.strategy_code = ''.join(
+            choice(['0', '1']) for _ in range(2**(2*lookback)))
         self.lookback = lookback
 
     def decide(self, self_previous_actions, opponent_previous_actions):
@@ -116,12 +90,47 @@ class StrategyGenerated(BaseStrategy):
         :param opponent_previous_actions: _description_
         :return: _description_
         """
-        if len(self_previous_actions) < self.lookback: return 1
+        if len(self_previous_actions) < self.lookback:
+            return 1
 
-        index = self_previous_actions[-self.lookback:] + opponent_previous_actions[-self.lookback:]
+        index = self_previous_actions[-self.lookback:] + \
+            opponent_previous_actions[-self.lookback:]
         index = int(''.join(map(str, index)), 2)
 
         return int(self.strategy_code[index])
+    
+    def mutate(self, chance):
+        if not self.strategy_code:
+            raise AttributeError("Instance must have stratey_code attribute.")
+
+        for i in range(len(self.strategy_code)):
+            if random() <= chance:
+                bit = self.strategy_code[i]
+                flipped_bit = '0' if bit == '1' else '1'
+                self.strategy_code = (
+                    self.strategy_code[:i] + flipped_bit +
+                    self.strategy_code[i + 1:]
+                )
+
+    def crossover(self, other_strategy, chance):
+        if not isinstance(other_strategy, BaseStrategy):
+            raise ValueError(
+                "Input must be an instance of BaseStrategy or its subclass.")
+
+        if not self.strategy_code or not other_strategy.strategy_code:
+            raise AttributeError(
+                "Input and class instance must have stratey_code attribute.")
+
+        list_self = list(self.strategy_code)
+        list_other = list(other_strategy.strategy_code)
+
+        for i, _ in enumerate(list_self):
+            if random() <= chance:
+                list_self[i], list_other[i] = list_other[i], list_self[i]
+
+        self.strategy_code = "".join(list_self)
+        other_strategy.strategy_code = "".join(list_other)
+
 
 class StrategyAlwaysDefect(BaseStrategy):
 
@@ -176,8 +185,6 @@ class StrategyGrudge(BaseStrategy):
         """Defect if opponent defected once, else cooperate."""
         if self.grudge:
             return 0
-        if not opponent_previous_actions:
-            return
         if opponent_previous_actions[-1] == 0:
             self.grudge = True
             return 0
