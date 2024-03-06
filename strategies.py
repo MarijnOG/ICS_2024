@@ -36,15 +36,6 @@ class BaseStrategy:
     def split_last_string(self, string: str):
         return string[:-1], string[-1]
 
-    def generate_lookup_table(self, strategy_code, lookback):
-        lookup_table = {}
-        table_size = 2 ** (lookback * 2)
-        for i in range(table_size):
-            key, result = self.split_last_string(strategy_code[i::table_size])
-            lookup_table[key] = result
-
-        return lookup_table
-
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
         binary_string = bin(
@@ -53,7 +44,8 @@ class BaseStrategy:
 
     def strategy_code_table_from_strategy(self, lookback: int):
         """Takes a compatible, possibly written out strategy and converts it to a strategy code.
-        This is implemented to reduce 'ugly' strategies in this file. Note that using this
+        This is implemented to reduce 'ugly' strategies in this file, as well as making it possible
+        to have manually defined strategies as mutable objects. Note that using this
         method with an incompatible strategy, such as one that uses chance, will produce
         undesirable and perhaps undeterministic behaviour."""
         strategy_code = ""
@@ -64,9 +56,8 @@ class BaseStrategy:
                 opp_str_bin = self._int_to_binary_str(
                     opponent_decision, lookback)
 
-                print([int(c) for c in own_str_bin], [int(c) for c in opp_str_bin])
-
-                new_decision = self.decide([int(c) for c in own_str_bin], [int(c) for c in opp_str_bin])
+                new_decision = self.decide([int(c) for c in own_str_bin],
+                                           [int(c) for c in opp_str_bin])
                 new_decision = new_decision if type(
                     new_decision) == int else new_decision[-1]
 
@@ -75,14 +66,7 @@ class BaseStrategy:
         self.strategy_code = strategy_code
         return strategy_code
 
-
-class StrategyGenerated(BaseStrategy):
-
-    def __init__(self, lookback):
-        self.strategy_code = ''.join(
-            choice(['0', '1']) for _ in range(2**(2*lookback)))
-        self.lookback = lookback
-
+class CodeBasedStrategy(BaseStrategy):
     def decide(self, self_previous_actions, opponent_previous_actions):
         """Uses the randomly generated table to decide the next step.
 
@@ -98,7 +82,7 @@ class StrategyGenerated(BaseStrategy):
         index = int(''.join(map(str, index)), 2)
 
         return int(self.strategy_code[index])
-    
+
     def mutate(self, chance):
         if not self.strategy_code:
             raise AttributeError("Instance must have stratey_code attribute.")
@@ -131,6 +115,22 @@ class StrategyGenerated(BaseStrategy):
         self.strategy_code = "".join(list_self)
         other_strategy.strategy_code = "".join(list_other)
 
+class StrategyGenerated(CodeBasedStrategy):
+    """Generates a strategy code for itself"""
+
+    def __init__(self, lookback):
+        self.strategy_code = ''.join(
+            choice(['0', '1']) for _ in range(2**(2*lookback)))
+        self.lookback = lookback
+
+# Note that this strategy is in binary string format. For the written out version,
+# see codeable_strategies.py
+class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
+    """Defects after 2 consecutive defects by the opponent"""
+    
+    def __init__(self):
+        self.strategy_code = "0111011101110111"
+        self.lookback = 2
 
 class StrategyAlwaysDefect(BaseStrategy):
 
