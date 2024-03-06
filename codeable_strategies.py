@@ -18,11 +18,18 @@ class StrategyDefectAfterTwoDefects(BaseStrategy):
         """
 
         if len(opponent_previous_actions) >= 2:
-            print(opponent_previous_actions[-2:])
-            return 0 if opponent_previous_actions[-1:] == [0] else 1
+            return 0 if opponent_previous_actions[-2:] == [0, 0] else 1
         return 1
     
 strat = StrategyDefectAfterTwoDefects()
-print(strat.lookup_table_from_strategy(2))
+strat.strategy_code_table_from_strategy(2)
+strat2 = StrategyGenerated(2)
 
+print(strat.strategy_code)
+print(strat2.strategy_code, "\n")
+
+strat2.crossover(strat, 1)
+
+print(strat.strategy_code)
+print(strat2.strategy_code)
 #TODO Fix dat previous actions niet als lijst maar als ['00'] <- dit worden doorgegeven door de method in strategies.

@@ -44,7 +44,36 @@ class BaseStrategy:
             lookup_table[key] = result
 
         return lookup_table
+    
+    # example strategy code: "1100"
+    def mutate(self, chance):
+        if not self.strategy_code:
+            raise AttributeError("Instance must have stratey_code attribute.")
 
+        for i in range(len(self.strategy_code)):
+            if random() <= chance:
+                bit = self.strategy_code[i]
+                flipped_bit = '0' if bit == '1' else '1'
+                self.strategy_code = (
+                    self.strategy_code[:i] + flipped_bit + self.strategy_code[i + 1:]
+                )
+
+    def crossover(self, other_strategy, chance):
+        if not isinstance(other_strategy, BaseStrategy):
+            raise ValueError("Input must be an instance of BaseStrategy or its subclass.")
+        
+        if not self.strategy_code or not other_strategy.strategy_code:
+            raise AttributeError("Input and class instance must have stratey_code attribute.")
+        
+        list_self = list(self.strategy_code)
+        list_other = list(other_strategy.strategy_code)
+
+        for i in len(list_self):
+            if random() <= chance:
+                list_self[i], list_other[i] = list_other[i], list_self[i]
+
+        self.strategy_code = str(list_self)
+        other_strategy.strategy_code = str(list_other)
 
     def _int_to_binary_str(self, number, padding_length):
         """Converts an integer to binary in list format with length padding_length"""
@@ -93,37 +122,6 @@ class StrategyGenerated(BaseStrategy):
         index = int(''.join(map(str, index)), 2)
 
         return int(self.strategy_code[index])
-
-
-    # example strategy code: "1100"
-    def mutate(self, chance):
-        if not self.strategy_code:
-            raise AttributeError("Instance must have stratey_code attribute.")
-
-        for i in range(len(self.strategy_code)):
-            if random() <= chance:
-                bit = self.strategy_code[i]
-                flipped_bit = '0' if bit == '1' else '1'
-                self.strategy_code = (
-                    self.strategy_code[:i] + flipped_bit + self.strategy_code[i + 1:]
-                )
-
-    def crossover(self, other_strategy, chance):
-        if not isinstance(other_strategy, BaseStrategy):
-            raise ValueError("Input must be an instance of BaseStrategy or its subclass.")
-
-        if not self.strategy_code or not other_strategy.strategy_code:
-            raise AttributeError("Input and class instance must have stratey_code attribute.")
-
-        list_self = list(self.strategy_code)
-        list_other = list(other_strategy.strategy_code)
-
-        for i in len(list_self):
-            if random() <= chance:
-                list_self[i], list_other[i] = list_other[i], list_self[i]
-
-        self.strategy_code = str(list_self)
-        other_strategy.strategy_code = str(list_other)
 
 class StrategyAlwaysDefect(BaseStrategy):
 
