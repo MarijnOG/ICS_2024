@@ -7,6 +7,20 @@ from copy import deepcopy
 
 MUTATION = True
 
+ALL_STRATS = [
+        StrategyAlwaysDefect(),
+        StrategyAlwaysCooperate(),
+        StrategyTitForThat(),
+        StrategyGrudge(),
+        StrategyRandom(),
+        StrategyAverage(),
+        StrategyGamblersTitForThat(),
+        StrategyInvertedTat(),
+        StrategyFunnyLooking(),
+        StrategySigmaTFT(),
+        StrategyDefectAfterTwoDefects(),
+    ]
+
 
 class Gamemaster(Model):
 
@@ -17,6 +31,7 @@ class Gamemaster(Model):
         experimental=False,
     ):
         Model.__init__(self)
+
         assert not (
             mutation and experimental
         ), "Can't be both mutation and experimental"
@@ -218,6 +233,8 @@ class Gamemaster(Model):
                 for _ in range(self.amount_strategies)
             ]
 
+
+
     def step(self):
         if self.experimental:
             self.experimental_play_tournament()
@@ -300,9 +317,9 @@ def experiment_full_genetic():
             )
 
 def experiment_mixed():
-    model = Gamemaster([], mutation=True)
+    model = Gamemaster(ALL_STRATS, mutation=False, experimental=True)
     model.amount_runs = 100
-    model.amount_strategies = 60
+    model.amount_strategies = 20
     model.selection_fraction = 0.2
     model.crossover_fraction = 0.4
     model.mutation_chance = 0.05
@@ -326,6 +343,7 @@ def experiment_mixed():
         file.write(f"total_steps: {TOTAL_STEPS}\n\n")
 
         # genetic parameters
+
         for strategy in model.strategies:
             if isinstance(strategy, StrategyGenerated):
                 file.write(
@@ -336,19 +354,10 @@ def experiment_mixed():
 
 
 def main():
-    # experiment_full_genetic()
-    # return
+    experiment_mixed()
+    return
 
-    strats = [
-        StrategyAlwaysDefect(),
-        StrategyAlwaysCooperate(),
-        StrategyTitForThat(),
-        StrategyGrudge(),
-        StrategyRandom(),
-        StrategyAverage(),
-        StrategyGamblersTitForThat(),
-        StrategyInvertedTat(),
-    ]
+
 
     model = Gamemaster(strats, mutation=False, experimental=True)
     from pyics import GUI

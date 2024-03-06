@@ -249,7 +249,7 @@ class StrategySigmaTFT(BaseStrategy):
         # -1 for defect, +1 for cooperate
         self.defect_coop_count = 0
 
-    def sigmoid(z):
+    def sigmoid(self, z):
         return 1/(1 + exp(-z))
 
     def decide(self, self_previous_actions, opponent_previous_actions):
