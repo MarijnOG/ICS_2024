@@ -209,7 +209,6 @@ class StrategyAverage(BaseStrategy):
         if opponent_previous_actions[-1]:
             self.decision_sum += opponent_previous_actions[-1]
 
-        print(opponent_previous_actions)
         return round(self.decision_sum/self.decision_count)
 
 
