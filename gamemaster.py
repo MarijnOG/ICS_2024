@@ -1,24 +1,32 @@
 from pyics import Model
-import numpy as np
 from strategies import *
-from typing import List, Tuple
+from typing import List, Tuple, Dict
+from random import randint
 
 
-class Gamemaster:
+class Gamemaster(Model):
 
     def __init__(
         self,
         strategies: List[BaseStrategy],
-        n_runs: int,
-        random_int: int = 0,
     ):
-        super().__init__()
+        Model.__init__(self)
 
         self.strategies = strategies
-        self.tournament_results = []
+        self.tournament_results: Dict[BaseStrategy, List[int]] = {}
         self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
 
-        self.amount_runs = n_runs + random_int
+        self.make_param("random_int", False)
+        self.make_param("amount_runs", 100, setter=self.set_amount_runs)
+
+    def set_amount_runs(self, value):
+        value = value if value > 0 else 1
+        random_range = 0
+        if self.random_int:
+            # 10 percent of amount runs
+            random_range = int(self.amount_runs * 0.1)
+            random_range = randint(0, random_range)
+        return value + random_range
 
     def play_tournament(self):
 
@@ -27,7 +35,6 @@ class Gamemaster:
         for strategy1 in self.strategies:
             for strategy2 in self.strategies:
                 if strategy1 == strategy2:
-                    print("self")
                     continue
 
                 if strategy1 not in strategy_scores:
@@ -39,9 +46,11 @@ class Gamemaster:
                         strategy1, strategy2
                     )[0]
 
-        for key, value in strategy_scores.items():
-            key: BaseStrategy
-            print(f"{key.__class__.__name__}: {value}")
+        for strat, score in strategy_scores.items():
+            if strat in self.tournament_results:
+                self.tournament_results[strat].append(score)
+            else:
+                self.tournament_results[strat] = [score]
 
     def play_round(
         self, strategy1: BaseStrategy, strategy2: BaseStrategy
@@ -69,8 +78,48 @@ class Gamemaster:
         return player1_reward, player2_reward
 
     def reset(self):
-        self.player1_results = []
-        self.player2_results = []
+        self.tournament_results = {}
+        self.play_tournament()
+
+    def step(self):
+        self.play_tournament()
+
+    def draw(self):
+        import matplotlib.pyplot as plt
+
+        plt.cla()
+
+
+
+        sorted_strategies = sorted(
+            self.tournament_results.items(),
+            key=lambda x: sum(x[1]),
+            reverse=True,
+        )
+
+        table = []
+        for strategy, scores in sorted_strategies:
+            table.append([strategy.__class__.__name__, sum(scores), scores[-1]])
+
+        if not table:
+            print("No data to display.")
+            plt.text(0.5, 0.5, "No data to display", ha="center")
+        else:
+            # sub plot 1 of 2
+            plt.subplot(2, 1, 1)
+            plt.axis("off")
+            plt.table(
+                cellText=table,
+                colLabels=["Strategy", "Total Score", "Last Score"],
+                loc="center",
+            )
+            
+
+
+
+    def reset(self):
+
+        self.tournament_results = {}
 
 
 if __name__ == "__main__":
@@ -85,5 +134,8 @@ if __name__ == "__main__":
         StrategyInvertedTat(),
     ]
 
-    game = Gamemaster(strats, 100)
-    game.play_tournament()
+    model = Gamemaster(strats)
+    from pyics import GUI
+
+    gui = GUI(model)
+    gui.start()
