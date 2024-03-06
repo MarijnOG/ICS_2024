@@ -254,9 +254,6 @@ class Gamemaster(Model):
         table = []
         for strategy, scores in sorted_strategies:
             table.append([strategy.__class__.__name__, sum(scores), scores[-1]])
-            plt.title(
-                f"Top score. parameters: {self.amount_strategies=}, {self.selection_fraction=}, {self.crossover_fraction=}, {self.mutation_chance=}"
-            )
 
         if not table:
             print("No data to display.")
@@ -352,10 +349,7 @@ def experiment_mixed():
 
 
 def main():
-    experiment_mixed()
-    return
-
-    model = Gamemaster(strats, mutation=False, experimental=True)
+    model = Gamemaster(ALL_STRATS)
     from pyics import GUI
 
     gui = GUI(model)
