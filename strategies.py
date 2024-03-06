@@ -145,6 +145,8 @@ class StrategyGrudge(BaseStrategy):
         """Defect if opponent defected once, else cooperate."""
         if self.grudge:
             return 0
+        if not opponent_previous_actions:
+            return
         if opponent_previous_actions[-1] == 0:
             self.grudge = True
             return 0

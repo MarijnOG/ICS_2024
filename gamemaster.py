@@ -15,6 +15,7 @@ class Gamemaster(Model):
         self.strategies = strategies
         self.tournament_results: Dict[BaseStrategy, List[int]] = {}
         self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
+        self.top_score_per_round = []
 
         self.make_param("random_int", False)
         self.make_param("amount_runs", 100, setter=self.set_amount_runs)
@@ -51,6 +52,9 @@ class Gamemaster(Model):
                 self.tournament_results[strat].append(score)
             else:
                 self.tournament_results[strat] = [score]
+
+        all_scores = strategy_scores.values()
+        self.top_score_per_round.append(max(all_scores))
 
     def play_round(
         self, strategy1: BaseStrategy, strategy2: BaseStrategy
@@ -89,8 +93,6 @@ class Gamemaster(Model):
 
         plt.cla()
 
-
-
         sorted_strategies = sorted(
             self.tournament_results.items(),
             key=lambda x: sum(x[1]),
@@ -113,9 +115,14 @@ class Gamemaster(Model):
                 colLabels=["Strategy", "Total Score", "Last Score"],
                 loc="center",
             )
-            
+            plt.title("Tournament Results")
 
-
+            # sub plot 2 of 2
+            plt.subplot(2, 1, 2)
+            plt.plot(self.top_score_per_round)
+            plt.xlabel("Round")
+            plt.ylabel("Top Score")
+            plt.title("Top Score per Round")
 
     def reset(self):
 
