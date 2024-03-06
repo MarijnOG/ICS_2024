@@ -28,7 +28,7 @@ strat2 = StrategyGenerated(2)
 print(strat.strategy_code)
 print(strat2.strategy_code, "\n")
 
-strat2.crossover(strat, 1)
+strat2.mutate(1)
 
 print(strat.strategy_code)
 print(strat2.strategy_code)
