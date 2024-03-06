@@ -8,18 +8,18 @@ from copy import deepcopy
 MUTATION = True
 
 ALL_STRATS = [
-        StrategyAlwaysDefect(),
-        StrategyAlwaysCooperate(),
-        StrategyTitForThat(),
-        StrategyGrudge(),
-        StrategyRandom(),
-        StrategyAverage(),
-        StrategyGamblersTitForThat(),
-        StrategyInvertedTat(),
-        StrategyFunnyLooking(),
-        StrategySigmaTFT(),
-        StrategyDefectAfterTwoDefects(),
-    ]
+    StrategyAlwaysDefect(),
+    StrategyAlwaysCooperate(),
+    StrategyTitForThat(),
+    StrategyGrudge(),
+    StrategyRandom(),
+    StrategyAverage(),
+    StrategyGamblersTitForThat(),
+    StrategyInvertedTat(),
+    StrategyFunnyLooking(),
+    StrategySigmaTFT(),
+    StrategyDefectAfterTwoDefects(),
+]
 
 
 class Gamemaster(Model):
@@ -154,10 +154,11 @@ class Gamemaster(Model):
         for strat in strategy_scores:
             print(strat.__class__.__name__, strategy_scores[strat])
 
-
         # remove base strategies
         strategy_scores = {
-            k: v for k, v in strategy_scores.items() if isinstance(k, StrategyGenerated)
+            k: v
+            for k, v in strategy_scores.items()
+            if isinstance(k, StrategyGenerated)
         }
         self.evolve(strategy_scores)
         # add them back in
@@ -203,9 +204,7 @@ class Gamemaster(Model):
             player1_results.append(
                 strategy1.decide(player1_results, player2_results)
             )
-            player2_results.append(
-                strategy2.decide(player2_results, tmp1)
-            )
+            player2_results.append(strategy2.decide(player2_results, tmp1))
 
             # Calculate rewards
             result_key = (player1_results[-1], player2_results[-1])
@@ -232,8 +231,6 @@ class Gamemaster(Model):
                 StrategyGenerated(self.lookback)
                 for _ in range(self.amount_strategies)
             ]
-
-
 
     def step(self):
         if self.experimental:
@@ -316,6 +313,7 @@ def experiment_full_genetic():
                 f"{strategy.__class__.__name__}: {strategy.strategy_code}\n"
             )
 
+
 def experiment_mixed():
     model = Gamemaster(ALL_STRATS, mutation=False, experimental=True)
     model.amount_runs = 100
@@ -356,8 +354,6 @@ def experiment_mixed():
 def main():
     experiment_mixed()
     return
-
-
 
     model = Gamemaster(strats, mutation=False, experimental=True)
     from pyics import GUI
