@@ -2,6 +2,7 @@ from pyics import Model
 from strategies import *
 from typing import List, Tuple, Dict
 from random import randint
+import matplotlib.pyplot as plt
 
 
 class Gamemaster(Model):
@@ -9,16 +10,44 @@ class Gamemaster(Model):
     def __init__(
         self,
         strategies: List[BaseStrategy],
+        mutation=False,
     ):
         Model.__init__(self)
 
-        self.strategies = strategies
         self.tournament_results: Dict[BaseStrategy, List[int]] = {}
         self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
         self.top_score_per_round = []
+        self.mutation = mutation
 
         self.make_param("random_int", False)
         self.make_param("amount_runs", 100, setter=self.set_amount_runs)
+
+        if mutation:
+            self.make_param("mutation_percentage", 0.1)
+            self.make_param(
+                "amount_strategies", 100, setter=self.set_amount_strategies
+            )
+            self.make_param(
+                "selection_percentage",
+                0.1,
+                setter=self.set_selection_percentage,
+            )
+            self.make_param("lookback", 1, setter=self.set_lookback)
+            self.strategies = [
+                StrategyGenerated(self.lookback)
+                for _ in range(self.amount_strategies)
+            ]
+        else:
+            self.strategies = strategies
+
+    def set_lookback(self, value):
+        return value if value > 0 else 1
+
+    def set_selection_percentage(self, value):
+        return max(0, min(1, value))
+
+    def set_amount_strategies(self, value):
+        return value if value > 0 else 1
 
     def set_amount_runs(self, value):
         value = value if value > 0 else 1
@@ -55,6 +84,17 @@ class Gamemaster(Model):
 
         all_scores = strategy_scores.values()
         self.top_score_per_round.append(max(all_scores))
+        print(self.top_score_per_round)
+
+        if self.mutation:
+            # select the top self.selection_percentage strategies
+            top_strategies = sorted(
+                strategy_scores.items(), key=lambda x: x[1], reverse=True
+            )[: int(self.amount_strategies * self.selection_percentage)]
+
+            # repeat the top strategies
+
+
 
     def play_round(
         self, strategy1: BaseStrategy, strategy2: BaseStrategy
@@ -88,11 +128,14 @@ class Gamemaster(Model):
     def step(self):
         self.play_tournament()
 
+    def top_score_graph(self):
+        plt.plot(self.top_score_per_round)
+        plt.xlabel("Round")
+        plt.ylabel("Top Score")
+        plt.title("Top Score per Round")
+
     def draw(self):
-        import matplotlib.pyplot as plt
-
         plt.cla()
-
         sorted_strategies = sorted(
             self.tournament_results.items(),
             key=lambda x: sum(x[1]),
@@ -107,26 +150,28 @@ class Gamemaster(Model):
             print("No data to display.")
             plt.text(0.5, 0.5, "No data to display", ha="center")
         else:
-            # sub plot 1 of 2
-            plt.subplot(2, 1, 1)
-            plt.axis("off")
-            plt.table(
-                cellText=table,
-                colLabels=["Strategy", "Total Score", "Last Score"],
-                loc="center",
-            )
-            plt.title("Tournament Results")
 
-            # sub plot 2 of 2
-            plt.subplot(2, 1, 2)
-            plt.plot(self.top_score_per_round)
-            plt.xlabel("Round")
-            plt.ylabel("Top Score")
-            plt.title("Top Score per Round")
+            if self.mutation:
+                self.top_score_graph()
+            else:
+
+                # sub plot 1 of 2
+                plt.subplot(2, 1, 1)
+                plt.axis("off")
+                plt.table(
+                    cellText=table,
+                    colLabels=["Strategy", "Total Score", "Last Score"],
+                    loc="center",
+                )
+                plt.title("Tournament Results")
+                # sub plot 2 of 2
+                plt.subplot(2, 1, 2)
+                self.top_score_graph()
 
     def reset(self):
-
         self.tournament_results = {}
+
+
 
 
 if __name__ == "__main__":
