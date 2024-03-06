@@ -3,6 +3,9 @@ from strategies import *
 from typing import List, Tuple, Dict
 from random import randint
 import matplotlib.pyplot as plt
+from copy import deepcopy
+
+MUTATION = True
 
 
 class Gamemaster(Model):
@@ -87,12 +90,29 @@ class Gamemaster(Model):
         print(self.top_score_per_round)
 
         if self.mutation:
-            # select the top self.selection_percentage strategies
-            top_strategies = sorted(
-                strategy_scores.items(), key=lambda x: x[1], reverse=True
-            )[: int(self.amount_strategies * self.selection_percentage)]
+            self.evolve(strategy_scores)
 
-            # repeat the top strategies
+    def evolve(self, strategy_scores):
+
+        # select the top self.selection_percentage strategies
+        top_strategies = sorted(
+            strategy_scores.items(), key=lambda x: x[1], reverse=True
+        )[: int(self.amount_strategies * self.selection_percentage)]
+
+        self.strategies = []
+
+        for i in range(self.amount_strategies):
+            self.strategies.append(
+                deepcopy(top_strategies[i % len(top_strategies)][0])
+            )
+
+        # crossover but not with itself
+        for i in range(0, len(self.strategies), 2):
+            if i + 1 < len(self.strategies):
+                self.strategies[i].crossover(
+                    self.strategies[i + 1], self.mutation_percentage
+                )
+                
 
 
 
@@ -172,8 +192,6 @@ class Gamemaster(Model):
         self.tournament_results = {}
 
 
-
-
 if __name__ == "__main__":
     strats = [
         StrategyAlwaysDefect(),
@@ -186,7 +204,7 @@ if __name__ == "__main__":
         StrategyInvertedTat(),
     ]
 
-    model = Gamemaster(strats)
+    model = Gamemaster(strats, mutation=MUTATION)
     from pyics import GUI
 
     gui = GUI(model)
