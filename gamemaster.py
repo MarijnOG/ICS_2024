@@ -16,37 +16,36 @@ class Gamemaster(Model):
         mutation=False,
     ):
         Model.__init__(self)
-
-        self.tournament_results: Dict[BaseStrategy, List[int]] = {}
         self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
-        self.top_score_per_round = []
         self.mutation = mutation
 
         self.make_param("random_int", False)
         self.make_param("amount_runs", 100, setter=self.set_amount_runs)
 
         if mutation:
-            self.make_param("mutation_percentage", 0.1)
+            self.make_param("mutation_chance", 0.01)
             self.make_param(
-                "amount_strategies", 100, setter=self.set_amount_strategies
+                "amount_strategies", 20, setter=self.set_amount_strategies
             )
             self.make_param(
-                "selection_percentage",
-                0.1,
-                setter=self.set_selection_percentage,
+                "selection_fraction",
+                0.2,
+                setter=self.set_selection_fraction,
             )
-            self.make_param("lookback", 1, setter=self.set_lookback)
-            self.strategies = [
-                StrategyGenerated(self.lookback)
-                for _ in range(self.amount_strategies)
-            ]
+            self.make_param(
+                "crossover_chance", 0.2, setter=self.set_selection_fraction
+            )
+            self.make_param("lookback", 4, setter=self.set_lookback)
+
         else:
             self.strategies = strategies
+
+        self.reset()
 
     def set_lookback(self, value):
         return value if value > 0 else 1
 
-    def set_selection_percentage(self, value):
+    def set_selection_fraction(self, value):
         return max(0, min(1, value))
 
     def set_amount_strategies(self, value):
@@ -94,10 +93,12 @@ class Gamemaster(Model):
 
     def evolve(self, strategy_scores):
 
-        # select the top self.selection_percentage strategies
+        # select the top self.selection_fraction strategies
         top_strategies = sorted(
             strategy_scores.items(), key=lambda x: x[1], reverse=True
-        )[: int(self.amount_strategies * self.selection_percentage)]
+        )[: int(self.amount_strategies * self.selection_fraction)]
+
+        print(sorted(strategy_scores.items(), key=lambda x: x[1], reverse=True))
 
         self.strategies = []
 
@@ -110,11 +111,12 @@ class Gamemaster(Model):
         for i in range(0, len(self.strategies), 2):
             if i + 1 < len(self.strategies):
                 self.strategies[i].crossover(
-                    self.strategies[i + 1], self.mutation_percentage
+                    self.strategies[i + 1], self.crossover_chance
                 )
-                
 
-
+        # mutate
+        for strategy in self.strategies:
+            strategy.mutate(self.mutation_chance)
 
     def play_round(
         self, strategy1: BaseStrategy, strategy2: BaseStrategy
@@ -142,8 +144,14 @@ class Gamemaster(Model):
         return player1_reward, player2_reward
 
     def reset(self):
-        self.tournament_results = {}
-        self.play_tournament()
+        self.tournament_results: Dict[BaseStrategy, List[int]] = {}
+        self.top_score_per_round = []
+
+        if self.mutation:
+            self.strategies = [
+                StrategyGenerated(self.lookback)
+                for _ in range(self.amount_strategies)
+            ]
 
     def step(self):
         self.play_tournament()
@@ -152,7 +160,6 @@ class Gamemaster(Model):
         plt.plot(self.top_score_per_round)
         plt.xlabel("Round")
         plt.ylabel("Top Score")
-        plt.title("Top Score per Round")
 
     def draw(self):
         plt.cla()
@@ -165,31 +172,31 @@ class Gamemaster(Model):
         table = []
         for strategy, scores in sorted_strategies:
             table.append([strategy.__class__.__name__, sum(scores), scores[-1]])
+            plt.title(
+                f"Top score. parameters: {self.amount_strategies=}, {self.selection_fraction=}, {self.crossover_chance=}, {self.mutation_chance=}"
+            )
 
         if not table:
             print("No data to display.")
             plt.text(0.5, 0.5, "No data to display", ha="center")
-        else:
+            return
 
-            if self.mutation:
-                self.top_score_graph()
-            else:
+        if self.mutation:
+            self.top_score_graph()
+            return
 
-                # sub plot 1 of 2
-                plt.subplot(2, 1, 1)
-                plt.axis("off")
-                plt.table(
-                    cellText=table,
-                    colLabels=["Strategy", "Total Score", "Last Score"],
-                    loc="center",
-                )
-                plt.title("Tournament Results")
-                # sub plot 2 of 2
-                plt.subplot(2, 1, 2)
-                self.top_score_graph()
-
-    def reset(self):
-        self.tournament_results = {}
+        # sub plot 1 of 2
+        plt.subplot(2, 1, 1)
+        plt.axis("off")
+        plt.table(
+            cellText=table,
+            colLabels=["Strategy", "Total Score", "Last Score"],
+            loc="center",
+        )
+        plt.title("Tournament Results")
+        # sub plot 2 of 2
+        plt.subplot(2, 1, 2)
+        self.top_score_graph()
 
 
 if __name__ == "__main__":
