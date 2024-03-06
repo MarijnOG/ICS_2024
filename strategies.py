@@ -1,5 +1,6 @@
 from enum import Enum
 from random import random, randint, choice
+from numpy import exp
 
 # Lists all strategies
 
@@ -123,14 +124,6 @@ class StrategyGenerated(CodeBasedStrategy):
             choice(['0', '1']) for _ in range(2**(2*lookback)))
         self.lookback = lookback
 
-# Note that this strategy is in binary string format. For the written out version,
-# see codeable_strategies.py
-class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
-    """Defects after 2 consecutive defects by the opponent"""
-
-    def __init__(self):
-        self.strategy_code = "0111011101110111"
-        self.lookback = 2
 
 class StrategyAlwaysDefect(BaseStrategy):
 
@@ -243,10 +236,49 @@ class StrategyInvertedTat(BaseStrategy):
 
     def decide(self, self_previous_actions, opponent_previous_actions):
         """
-        Tit for tat with added chance element. It makes the invverse decision 20%
+        Tit for tat with added chance element. It makes the inverse decision 20%
         of the time by default.
         """
         if opponent_previous_actions:
             return abs(opponent_previous_actions[-1] - 1)
 
         return 1
+
+class StrategySigmaTFT(BaseStrategy):
+
+    def __init__(self, chance_to_invert: float = 0.2):
+        # -1 for defect, +1 for cooperate
+        self.defect_coop_count = 0
+
+    def sigmoid(z):
+        return 1/(1 + exp(-z))
+
+    def decide(self, self_previous_actions, opponent_previous_actions):
+        """TFT except when there is a large discrepancy in cooperation and defection"""
+        if not opponent_previous_actions:
+            return 1
+
+        self.defect_coop_count += 1 if opponent_previous_actions[-1] == 1 else -1
+
+        # DON'T tit for that
+        if abs(self.sigmoid(self.defect_coop_count)) > 0.75:
+            return int(not opponent_previous_actions[-1])
+
+        return opponent_previous_actions[-1]
+
+# Note that this strategy is in binary string format. For the written out version,
+# see codeable_strategies.py
+class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
+    """Defects after 2 consecutive defects by the opponent"""
+
+    def __init__(self):
+        self.strategy_code = "0111011101110111"
+        self.lookback = 2
+
+class StrategyFunnyLooking(CodeBasedStrategy):
+    """Defects after 2 consecutive defects by the opponent"""
+
+    def __init__(self):
+        self.strategy_code = "1110001110001110"
+        self.lookback = 2
+
