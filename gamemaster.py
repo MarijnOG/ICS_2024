@@ -14,15 +14,22 @@ class Gamemaster(Model):
         self,
         strategies: List[BaseStrategy],
         mutation=False,
+        experimental=False,
     ):
         Model.__init__(self)
+        assert not (
+            mutation and experimental
+        ), "Can't be both mutation and experimental"
+
         self.payoff_table = {(1, 1): 3, (1, 0): 5, (0, 1): 0, (0, 0): 1}
         self.mutation = mutation
+        self.base_strategies = strategies
+        self.experimental = experimental
 
         self.make_param("random_int", False)
         self.make_param("amount_runs", 100, setter=self.set_amount_runs)
 
-        if mutation:
+        if mutation or experimental:
             self.make_param("mutation_chance", 0.01)
             self.make_param(
                 "amount_strategies", 20, setter=self.set_amount_strategies
@@ -33,7 +40,7 @@ class Gamemaster(Model):
                 setter=self.set_selection_fraction,
             )
             self.make_param(
-                "crossover_chance", 0.2, setter=self.set_selection_fraction
+                "crossover_fraction", 0.2, setter=self.set_selection_fraction
             )
             self.make_param("lookback", 4, setter=self.set_lookback)
 
@@ -85,11 +92,61 @@ class Gamemaster(Model):
                 self.tournament_results[strat] = [score]
 
         all_scores = strategy_scores.values()
+        self.scores_per_round.append(list(all_scores))
         self.top_score_per_round.append(max(all_scores))
-        print(self.top_score_per_round)
 
         if self.mutation:
             self.evolve(strategy_scores)
+
+    def experimental_play_tournament(self):
+
+        strategy_scores = {}
+
+        for strategy1 in self.strategies:
+            for strategy2 in self.strategies:
+                if strategy1 == strategy2:
+                    continue
+                if isinstance(strategy1, StrategyGenerated) and isinstance(
+                    strategy2, StrategyGenerated
+                ):
+                    continue
+
+                if not isinstance(strategy1, StrategyGenerated):
+                    continue
+
+                if strategy1 not in strategy_scores:
+                    strategy_scores[strategy1] = self.play_round(
+                        strategy1, strategy2
+                    )[0]
+                else:
+                    strategy_scores[strategy1] += self.play_round(
+                        strategy1, strategy2
+                    )[0]
+
+        for strat, score in strategy_scores.items():
+            if not isinstance(strat, StrategyGenerated):
+                continue
+
+            if strat in self.tournament_results:
+                self.tournament_results[strat].append(score)
+            else:
+                self.tournament_results[strat] = [score]
+
+        all_scores = strategy_scores.values()
+        self.scores_per_round.append(list(all_scores))
+        self.top_score_per_round.append(max(all_scores))
+
+        for strat in strategy_scores:
+            print(strat.__class__.__name__, strategy_scores[strat])
+
+
+        # remove base strategies
+        strategy_scores = {
+            k: v for k, v in strategy_scores.items() if isinstance(k, StrategyGenerated)
+        }
+        self.evolve(strategy_scores)
+        # add them back in
+        self.strategies = self.base_strategies + self.strategies
 
     def evolve(self, strategy_scores):
 
@@ -97,8 +154,6 @@ class Gamemaster(Model):
         top_strategies = sorted(
             strategy_scores.items(), key=lambda x: x[1], reverse=True
         )[: int(self.amount_strategies * self.selection_fraction)]
-
-        print(sorted(strategy_scores.items(), key=lambda x: x[1], reverse=True))
 
         self.strategies = []
 
@@ -111,7 +166,7 @@ class Gamemaster(Model):
         for i in range(0, len(self.strategies), 2):
             if i + 1 < len(self.strategies):
                 self.strategies[i].crossover(
-                    self.strategies[i + 1], self.crossover_chance
+                    self.strategies[i + 1], self.crossover_fraction
                 )
 
         # mutate
@@ -129,15 +184,17 @@ class Gamemaster(Model):
         player2_results = []
 
         for _ in range(self.amount_runs):
+            tmp1 = player1_results.copy()
             player1_results.append(
                 strategy1.decide(player1_results, player2_results)
             )
             player2_results.append(
-                strategy2.decide(player2_results, player1_results)
+                strategy2.decide(player2_results, tmp1)
             )
 
             # Calculate rewards
             result_key = (player1_results[-1], player2_results[-1])
+
             player1_reward += self.payoff_table[result_key]
             player2_reward += self.payoff_table[result_key[::-1]]
 
@@ -146,6 +203,7 @@ class Gamemaster(Model):
     def reset(self):
         self.tournament_results: Dict[BaseStrategy, List[int]] = {}
         self.top_score_per_round = []
+        self.scores_per_round = []
 
         if self.mutation:
             self.strategies = [
@@ -153,8 +211,18 @@ class Gamemaster(Model):
                 for _ in range(self.amount_strategies)
             ]
 
+        # if self.experimental then base strategies plus generated strategies
+        if self.experimental:
+            self.strategies = self.base_strategies + [
+                StrategyGenerated(self.lookback)
+                for _ in range(self.amount_strategies)
+            ]
+
     def step(self):
-        self.play_tournament()
+        if self.experimental:
+            self.experimental_play_tournament()
+        else:
+            self.play_tournament()
 
     def top_score_graph(self):
         plt.plot(self.top_score_per_round)
@@ -173,7 +241,7 @@ class Gamemaster(Model):
         for strategy, scores in sorted_strategies:
             table.append([strategy.__class__.__name__, sum(scores), scores[-1]])
             plt.title(
-                f"Top score. parameters: {self.amount_strategies=}, {self.selection_fraction=}, {self.crossover_chance=}, {self.mutation_chance=}"
+                f"Top score. parameters: {self.amount_strategies=}, {self.selection_fraction=}, {self.crossover_fraction=}, {self.mutation_chance=}"
             )
 
         if not table:
@@ -199,7 +267,78 @@ class Gamemaster(Model):
         self.top_score_graph()
 
 
-if __name__ == "__main__":
+def experiment_full_genetic():
+    model = Gamemaster([], mutation=True)
+    model.amount_runs = 100
+    model.amount_strategies = 60
+    model.selection_fraction = 0.2
+    model.crossover_fraction = 0.4
+    model.mutation_chance = 0.05
+    model.lookback = 6
+    model.reset()
+
+    TOTAL_STEPS = 20
+    for i in range(TOTAL_STEPS):
+        model.step()
+        print(f"Step {i+1}/{TOTAL_STEPS}")
+
+    with open("full_genetic.txt", "w") as file:
+        file.write(f"amount_strategies: {model.amount_strategies}\n")
+        file.write(f"selection_fraction: {model.selection_fraction}\n")
+        file.write(f"crossover_fraction: {model.crossover_fraction}\n")
+        file.write(f"mutation_chance: {model.mutation_chance}\n")
+        file.write(f"lookback: {model.lookback}\n")
+        file.write(f"amount_runs: {model.amount_runs}\n")
+        file.write(f"top_score_per_round: {model.top_score_per_round}\n")
+        file.write(f"scores_per_round: {model.scores_per_round}\n")
+        file.write(f"total_steps: {TOTAL_STEPS}\n\n")
+
+        # genetic parameters
+        for strategy in model.strategies:
+            file.write(
+                f"{strategy.__class__.__name__}: {strategy.strategy_code}\n"
+            )
+
+def experiment_mixed():
+    model = Gamemaster([], mutation=True)
+    model.amount_runs = 100
+    model.amount_strategies = 60
+    model.selection_fraction = 0.2
+    model.crossover_fraction = 0.4
+    model.mutation_chance = 0.05
+    model.lookback = 6
+    model.reset()
+
+    TOTAL_STEPS = 20
+    for i in range(TOTAL_STEPS):
+        model.step()
+        print(f"Step {i+1}/{TOTAL_STEPS}")
+
+    with open("experiment_mixed.txt", "w") as file:
+        file.write(f"amount_strategies: {model.amount_strategies}\n")
+        file.write(f"selection_fraction: {model.selection_fraction}\n")
+        file.write(f"crossover_fraction: {model.crossover_fraction}\n")
+        file.write(f"mutation_chance: {model.mutation_chance}\n")
+        file.write(f"lookback: {model.lookback}\n")
+        file.write(f"amount_runs: {model.amount_runs}\n")
+        file.write(f"top_score_per_round: {model.top_score_per_round}\n")
+        file.write(f"scores_per_round: {model.scores_per_round}\n")
+        file.write(f"total_steps: {TOTAL_STEPS}\n\n")
+
+        # genetic parameters
+        for strategy in model.strategies:
+            if isinstance(strategy, StrategyGenerated):
+                file.write(
+                    f"{strategy.__class__.__name__}: {strategy.strategy_code}\n"
+                )
+            else:
+                file.write(f"{strategy.__class__.__name__}\n")
+
+
+def main():
+    # experiment_full_genetic()
+    # return
+
     strats = [
         StrategyAlwaysDefect(),
         StrategyAlwaysCooperate(),
@@ -211,8 +350,12 @@ if __name__ == "__main__":
         StrategyInvertedTat(),
     ]
 
-    model = Gamemaster(strats, mutation=MUTATION)
+    model = Gamemaster(strats, mutation=False, experimental=True)
     from pyics import GUI
 
     gui = GUI(model)
     gui.start()
+
+
+if __name__ == "__main__":
+    main()

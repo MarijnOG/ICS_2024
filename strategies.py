@@ -127,7 +127,7 @@ class StrategyGenerated(CodeBasedStrategy):
 # see codeable_strategies.py
 class StrategyDefectAfterTwoDefects(CodeBasedStrategy):
     """Defects after 2 consecutive defects by the opponent"""
-    
+
     def __init__(self):
         self.strategy_code = "0111011101110111"
         self.lookback = 2
@@ -185,6 +185,8 @@ class StrategyGrudge(BaseStrategy):
         """Defect if opponent defected once, else cooperate."""
         if self.grudge:
             return 0
+        if not opponent_previous_actions:
+            return 1
         if opponent_previous_actions[-1] == 0:
             self.grudge = True
             return 0
@@ -214,6 +216,7 @@ class StrategyAverage(BaseStrategy):
         if opponent_previous_actions[-1]:
             self.decision_sum += opponent_previous_actions[-1]
 
+        print(opponent_previous_actions)
         return round(self.decision_sum/self.decision_count)
 
 
