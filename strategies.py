@@ -177,6 +177,8 @@ class StrategyGrudge(BaseStrategy):
         """Defect if opponent defected once, else cooperate."""
         if self.grudge:
             return 0
+        if not opponent_previous_actions: 
+            return 1
         if opponent_previous_actions[-1] == 0:
             self.grudge = True
             return 0
@@ -258,7 +260,7 @@ class StrategySigmaTFT(BaseStrategy):
         self.defect_coop_count += 1 if opponent_previous_actions[-1] == 1 else -1
 
         # DON'T tit for that
-        if abs(self.sigmoid(self.defect_coop_count)) > 0.75:
+        if abs(self.sigmoid(self.defect_coop_count)**2) > 0.75:
             return int(not opponent_previous_actions[-1])
 
         return opponent_previous_actions[-1]
